@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ilovepeachs | Digital Architect</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@200;400;600;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Bricolage Grotesque', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        void: '#000000',
+                        glass: 'rgba(20, 20, 20, 0.6)',
+                    },
+                    animation: {
+                        'scroll': 'scroll 40s linear infinite',
+                        'spotlight': 'spotlight 2s ease .75s 1 forwards',
+                        'pulse-slow': 'pulseGlow 8s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        scroll: { '0%': { transform: 'translateX(0)' }, '100%': { transform: 'translateX(-50%)' } },
+                        pulseGlow: { '0%, 100%': { opacity: 0.1 }, '50%': { opacity: 0.3 } },
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* --- CORE --- */
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            overflow-x: hidden;
+            margin: 0;
+        }
+
+        /* --- BACKGROUND LAYERS --- */
+        #pattern-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -2; pointer-events: none; opacity: 0.3;
+            -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 100%);
+            mask-image: radial-gradient(ellipse at center, black 40%, transparent 100%);
+        }
+        
+        #grid-overlay {
+            position: fixed; inset: 0; z-index: -1; pointer-events: none;
+            backdrop-filter: blur(1px);
+            background-image: radial-gradient(circle at 50% 50%, transparent 0, transparent 2px, #000 2px);
+            background-size: 24px 24px;
+            opacity: 0.4;
+        }
+
+        /* --- UI COMPONENTS --- */
+        .glass-panel {
+            background: rgba(10, 10, 12, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Glitch Effect */
+        .glitch-wrapper { position: relative; display: inline-block; }
+        .glitch { position: relative; color: white; }
+        .glitch::before, .glitch::after {
+            content: attr(data-text);
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; opacity: 0.8;
+        }
+        .glitch::before {
+            left: 2px; text-shadow: -1px 0 #ff00c1; clip-path: inset(44% 0 61% 0);
+            animation: glitch-anim-1 2s infinite linear alternate-reverse;
+        }
+        .glitch::after {
+            left: -2px; text-shadow: -1px 0 #00fff9; clip-path: inset(50% 0 30% 0);
+            animation: glitch-anim-2 2s infinite linear alternate-reverse;
+        }
+        @keyframes glitch-anim-1 {
+            0% { clip-path: inset(20% 0 80% 0); }
+            20% { clip-path: inset(60% 0 10% 0); }
+            40% { clip-path: inset(40% 0 50% 0); }
+            60% { clip-path: inset(80% 0 5% 0); }
+            80% { clip-path: inset(10% 0 70% 0); }
+            100% { clip-path: inset(30% 0 20% 0); }
+        }
+        @keyframes glitch-anim-2 {
+            0% { clip-path: inset(10% 0 60% 0); }
+            20% { clip-path: inset(30% 0 10% 0); }
+            40% { clip-path: inset(80% 0 5% 0); }
+            60% { clip-path: inset(10% 0 80% 0); }
+            80% { clip-path: inset(40% 0 20% 0); }
+            100% { clip-path: inset(50% 0 30% 0); }
+        }
+
+        /* Shiny Button */
+        @property --gradient-angle { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+        .shiny-btn {
+            --gradient-angle: 0deg;
+            position: relative; overflow: hidden;
+            background: linear-gradient(#000, #000) padding-box,
+                        conic-gradient(from var(--gradient-angle), transparent 0%, #ffffff 10%, #555 20%, #ffffff 30%, transparent 40%, transparent 100%) border-box;
+            border: 1px solid transparent;
+            animation: border-spin 4s linear infinite;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .shiny-btn:hover { transform: scale(1.02); box-shadow: 0 0 30px -5px rgba(255, 255, 255, 0.3); }
+        @keyframes border-spin { to { --gradient-angle: 360deg; } }
+
+        /* Utils */
+        .reveal { opacity: 0; transform: translateY(40px); transition: all 1s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+        .perspective-container { perspective: 1200px; }
+        .card-3d { transform-style: preserve-3d; transition: transform 0.1s ease-out; }
+        
+        .spotlight-card { position: relative; overflow: hidden; }
+        .spotlight-card::before {
+            content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(800px circle at var(--mouse-x) var(--mouse-y), rgba(255,255,255,0.08), transparent 40%);
+            opacity: 0; transition: opacity 0.5s; pointer-events: none; z-index: 2;
+        }
+        .spotlight-card:hover::before { opacity: 1; }
+
+        /* Progress Bar for Skills */
+        .skill-bar-bg { background: rgba(255,255,255,0.1); height: 4px; border-radius: 2px; overflow: hidden; }
+        .skill-bar-fill { background: white; height: 100%; width: 0; transition: width 1.5s ease-out; }
+    </style>
+</head>
+<body class="selection:bg-white selection:text-black">
+
+    <div id="pattern-container"></div>
+    <div id="grid-overlay"></div>
+    <div class="fixed inset-0 z-[-1] pointer-events-none">
+        <div class="absolute top-[-20%] left-[50%] -translate-x-1/2 w-[1000px] h-[800px] bg-white/5 blur-[150px] rounded-full animate-pulse-slow"></div>
+    </div>
+
+    <nav class="fixed top-0 w-full z-50 glass-panel border-b-0 border-white/5 rounded-none backdrop-blur-xl">
+        <div class="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
+            <a href="#" class="flex items-center gap-3 group">
+                <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-transform group-hover:rotate-12">
+                    <span class="font-display font-bold text-xl text-black">IP</span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="font-display font-bold text-lg leading-none tracking-tight text-white">ilovepeachs</span>
+                    <span class="text-[10px] text-gray-500 font-mono tracking-widest uppercase">v6.0.0</span>
+                </div>
+            </a>
+
+            <div class="hidden md:flex items-center gap-2 bg-white/5 border border-white/10 rounded-full p-1.5 backdrop-blur-sm">
+                <a href="#about" class="px-5 py-2 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-all">About</a>
+                <a href="#work" class="px-5 py-2 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-all">Work</a>
+                <a href="#process" class="px-5 py-2 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-all">Process</a>
+                <a href="#pricing" class="px-5 py-2 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-all">Pricing</a>
+            </div>
+
+            <a href="#contact" class="bg-white text-black px-8 py-3 rounded-full font-bold text-sm hover:bg-gray-200 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+                Hire Me
+            </a>
+        </div>
+    </nav>
+
+    <section class="min-h-screen flex items-center justify-center relative px-6 pt-24 overflow-hidden perspective-container">
+        <div class="max-w-6xl w-full text-center relative z-10 flex flex-col items-center">
+            
+            <div class="reveal inline-flex items-center gap-3 px-5 py-2.5 rounded-full border border-white/10 bg-black/80 text-xs font-mono text-gray-300 mb-10 backdrop-blur-md shadow-lg">
+                <span class="flex h-2 w-2 relative">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                OPEN FOR COMMISSIONS
+            </div>
+
+            <h1 class="reveal text-7xl md:text-9xl font-display font-bold leading-[0.85] mb-10 tracking-tighter text-white mix-blend-difference" style="transition-delay: 100ms;">
+                DIGITAL <br>
+                <div class="glitch-wrapper">
+                    <span class="glitch text-transparent bg-clip-text bg-gradient-to-b from-white via-gray-400 to-gray-800" data-text="ARCHITECT">ARCHITECT</span>
+                </div>
+            </h1>
+
+            <p class="reveal text-lg md:text-xl text-gray-300 max-w-2xl mb-12 leading-relaxed font-light drop-shadow-md font-mono" style="transition-delay: 200ms;">
+                &lt;Building the impossible /&gt;<br>
+                Specialized in React, Node.js, and High-Performance Game Logic.
+            </p>
+
+            <div class="reveal flex flex-col sm:flex-row gap-6 mb-24" style="transition-delay: 300ms;">
+                <a href="#work" class="shiny-btn px-10 py-4 rounded-full text-white font-bold uppercase tracking-wider flex items-center gap-3">
+                    View Work <i data-lucide="arrow-down" class="w-4 h-4"></i>
+                </a>
+                <a href="#" class="px-8 py-4 rounded-full border border-white/10 hover:bg-white/5 transition flex items-center gap-3 text-sm font-medium bg-black/80 backdrop-blur-md">
+                    <i data-lucide="github" class="w-4 h-4"></i> GitHub
+                </a>
+            </div>
+
+            <div class="reveal w-full max-w-4xl relative group cursor-default" id="hero-card-container" style="transition-delay: 400ms;">
+                <div class="card-3d relative w-full aspect-[16/9] md:aspect-[21/9]">
+                    <div class="absolute inset-0 bg-white/5 rounded-2xl blur-3xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                    
+                    <div class="absolute inset-0 glass-panel rounded-2xl border border-white/10 p-1 flex flex-col shadow-2xl overflow-hidden bg-black/90">
+                        <div class="flex items-center gap-4 px-4 py-3 border-b border-white/5 bg-white/5">
+                            <div class="flex gap-2">
+                                <div class="w-3 h-3 rounded-full bg-red-500/50"></div>
+                                <div class="w-3 h-3 rounded-full bg-yellow-500/50"></div>
+                                <div class="w-3 h-3 rounded-full bg-green-500/50"></div>
+                            </div>
+                            <div class="flex-1 text-center text-xs font-mono text-gray-500">root@ilovepeachs:~</div>
+                        </div>
+                        
+                        <div class="flex-1 p-6 font-mono text-sm text-gray-300 text-left space-y-2 relative overflow-hidden">
+                            <div class="grid grid-cols-4 gap-4 mb-6 border-b border-white/10 pb-6">
+                                <div><div class="text-[10px] text-gray-500 uppercase">Commits</div><div class="text-white font-bold">1,402</div></div>
+                                <div><div class="text-[10px] text-gray-500 uppercase">Uptime</div><div class="text-green-400 font-bold">99.9%</div></div>
+                                <div><div class="text-[10px] text-gray-500 uppercase">Projects</div><div class="text-white font-bold">50+</div></div>
+                                <div><div class="text-[10px] text-gray-500 uppercase">Status</div><div class="text-white font-bold">ONLINE</div></div>
+                            </div>
+                            <p><span class="text-purple-400">const</span> <span class="text-white">portfolio</span> = <span class="text-yellow-400">require</span>('ilovepeachs');</p>
+                            <p><span class="text-gray-500">// Initializing services...</span></p>
+                            <p>> Loading Web Module... <span class="text-green-500">OK</span></p>
+                            <p>> Loading Bot Infrastructure... <span class="text-green-500">OK</span></p>
+                            <p>> Loading Game Assets... <span class="text-green-500">OK</span></p>
+                            <p class="mt-2"><span class="text-white animate-pulse">_</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="w-full border-y border-white/10 bg-black/80 py-6 relative z-20 overflow-hidden backdrop-blur-md">
+        <div class="flex w-max animate-scroll">
+            <div class="flex gap-16 px-8 items-center opacity-60">
+                <span class="text-2xl font-display font-bold text-gray-500">REACT</span>
+                <span class="text-2xl font-display font-bold text-white">NEXT.JS</span>
+                <span class="text-2xl font-display font-bold text-gray-500">TAILWIND</span>
+                <span class="text-2xl font-display font-bold text-white">TYPESCRIPT</span>
+                <span class="text-2xl font-display font-bold text-gray-500">NODE.JS</span>
+                <span class="text-2xl font-display font-bold text-white">DISCORD.JS</span>
+                <span class="text-2xl font-display font-bold text-gray-500">LUAU</span>
+                <span class="text-2xl font-display font-bold text-white">ROJO</span>
+                <span class="text-2xl font-display font-bold text-gray-500">MONGODB</span>
+                <span class="text-2xl font-display font-bold text-white">POSTGRESQL</span>
+                <span class="text-2xl font-display font-bold text-gray-500">REACT</span>
+                <span class="text-2xl font-display font-bold text-white">NEXT.JS</span>
+                <span class="text-2xl font-display font-bold text-gray-500">TAILWIND</span>
+                <span class="text-2xl font-display font-bold text-white">TYPESCRIPT</span>
+                <span class="text-2xl font-display font-bold text-gray-500">NODE.JS</span>
+            </div>
+        </div>
+    </div>
+
+    <section id="about" class="py-32 px-6 max-w-7xl mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+            <div class="reveal">
+                <span class="text-xs font-mono text-gray-500 uppercase tracking-widest mb-4 block">About Me</span>
+                <h2 class="text-4xl md:text-5xl font-display font-bold text-white mb-6">Obsessed with <br>Performance.</h2>
+                <p class="text-lg text-gray-400 leading-relaxed mb-6">
+                    I am a full-stack developer and game architect based in the digital void. I specialize in building high-concurrency systems that look beautiful and run fast.
+                </p>
+                <div class="flex gap-4">
+                    <div class="bg-white/5 border border-white/10 p-4 rounded-xl text-center w-32">
+                        <div class="text-2xl font-bold text-white">4+</div>
+                        <div class="text-[10px] uppercase text-gray-500">Years Exp</div>
+                    </div>
+                    <div class="bg-white/5 border border-white/10 p-4 rounded-xl text-center w-32">
+                        <div class="text-2xl font-bold text-white">100%</div>
+                        <div class="text-[10px] uppercase text-gray-500">Success Rate</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass-panel p-8 rounded-3xl border border-white/10 reveal space-y-6">
+                <div>
+                    <div class="flex justify-between text-xs uppercase text-gray-400 mb-2"><span>Web Development</span> <span>95%</span></div>
+                    <div class="skill-bar-bg"><div class="skill-bar-fill" style="width: 95%"></div></div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs uppercase text-gray-400 mb-2"><span>Discord Bot Infrastructure</span> <span>90%</span></div>
+                    <div class="skill-bar-bg"><div class="skill-bar-fill" style="width: 90%"></div></div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs uppercase text-gray-400 mb-2"><span>Game Logic (Lua)</span> <span>85%</span></div>
+                    <div class="skill-bar-bg"><div class="skill-bar-fill" style="width: 85%"></div></div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs uppercase text-gray-400 mb-2"><span>UI/UX Design</span> <span>80%</span></div>
+                    <div class="skill-bar-bg"><div class="skill-bar-fill" style="width: 80%"></div></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="work" class="py-32 px-6 max-w-7xl mx-auto relative z-10 border-t border-white/5">
+        <div class="flex flex-col md:flex-row justify-between items-end mb-16 reveal">
+            <div>
+                <span class="text-xs font-mono text-gray-500 uppercase tracking-widest">Portfolio</span>
+                <h2 class="text-4xl md:text-6xl font-display font-bold text-white mt-2">Selected Works</h2>
+            </div>
+            <p class="text-gray-400 max-w-md mt-4 md:mt-0 text-right">
+                High-performance solutions built for scale.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 auto-rows-[350px]">
+            
+            <div class="md:col-span-2 md:row-span-2 spotlight-card glass-panel rounded-3xl p-8 group relative cursor-pointer border border-white/5 hover:border-white/20 transition-colors reveal">
+                <div class="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div class="relative z-10 h-full flex flex-col justify-between">
+                    <div class="w-full h-64 bg-gray-900 rounded-xl overflow-hidden border border-white/10 mb-6 group-hover:scale-[1.02] transition-transform duration-500 relative">
+                        <div class="absolute inset-0 flex items-center justify-center text-gray-600 font-mono text-xs">PREVIEW_IMAGE_01.JPG</div>
+                        <div class="absolute top-4 right-4 bg-black/80 backdrop-blur px-3 py-1 rounded-full text-xs border border-white/10">WEBSITE</div>
+                    </div>
+                    <div>
+                        <h3 class="text-3xl font-display font-bold text-white mb-2">Wolrd Shop</h3>
+                        <p class="text-gray-400 text-sm">E-commerce platform with glassmorphism UI and custom animations.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="md:col-span-1 md:row-span-2 spotlight-card glass-panel rounded-3xl p-8 group relative cursor-pointer border border-white/5 hover:border-white/20 transition-colors reveal" style="transition-delay: 100ms;">
+                <div class="relative z-10 h-full flex flex-col">
+                    <div class="flex justify-between items-start mb-auto">
+                        <div class="w-12 h-12 rounded-xl bg-white text-black flex items-center justify-center font-bold text-xl">K</div>
+                        <div class="bg-white/10 px-3 py-1 rounded-full text-[10px] uppercase tracking-wider">Bot</div>
+                    </div>
+                    <div class="my-8 space-y-2 font-mono text-xs text-gray-400 bg-black/40 p-4 rounded-xl border border-white/5">
+                        <div class="flex gap-2"><span class="text-green-400">●</span> <span>System Online</span></div>
+                        <div class="h-px bg-white/10 my-2"></div>
+                        <p>> Moderation Module</p>
+                        <p>> Economy System</p>
+                        <p>> Music Player</p>
+                    </div>
+                    <h3 class="text-2xl font-display font-bold text-white mb-2">Kinetik</h3>
+                    <p class="text-gray-400 text-sm">Advanced moderation bot serving 10k+ servers.</p>
+                </div>
+            </div>
+
+            <div class="md:col-span-1 md:row-span-1 spotlight-card glass-panel rounded-3xl p-8 group relative cursor-pointer border border-white/5 hover:border-white/20 transition-colors reveal" style="transition-delay: 200ms;">
+                <div class="relative z-10 h-full flex flex-col justify-end">
+                    <div class="bg-white text-black px-2 py-0.5 rounded text-[10px] w-fit font-bold mb-2">1M+ VISITS</div>
+                    <h3 class="text-xl font-display font-bold text-white">City Tycoon</h3>
+                    <p class="text-gray-300 text-xs">Roblox Lua Game</p>
+                </div>
+            </div>
+
+            <div class="md:col-span-1 md:row-span-1 glass-panel rounded-3xl p-8 flex flex-col justify-center items-center text-center border border-white/5 reveal" style="transition-delay: 300ms;">
+                <h3 class="text-6xl font-display font-bold text-white mb-2">50+</h3>
+                <p class="text-gray-400 text-sm uppercase tracking-widest">Shipped</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="process" class="relative py-32 px-6 max-w-7xl mx-auto z-10">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-16">
+            
+            <div class="space-y-40 py-12">
+                <div class="reveal">
+                    <span class="text-xs font-mono text-gray-500 uppercase tracking-widest mb-4 block">01 / Analysis</span>
+                    <h2 class="text-4xl font-display font-bold mb-6 text-white">Understanding the Core.</h2>
+                    <p class="text-lg text-gray-400 leading-relaxed">
+                        I don't just write code; I solve problems. Every project starts with a deep dive into your requirements.
+                    </p>
+                </div>
+                <div class="reveal">
+                    <span class="text-xs font-mono text-gray-500 uppercase tracking-widest mb-4 block">02 / Architecture</span>
+                    <h2 class="text-4xl font-display font-bold mb-6 text-white">Robust Engineering.</h2>
+                    <p class="text-lg text-gray-400 leading-relaxed">
+                        Scalability is key. I design systems that can handle growth using clean code and modular functions.
+                    </p>
+                </div>
+                <div class="reveal">
+                    <span class="text-xs font-mono text-gray-500 uppercase tracking-widest mb-4 block">03 / Deployment</span>
+                    <h2 class="text-4xl font-display font-bold mb-6 text-white">Launch & Optimization.</h2>
+                    <p class="text-lg text-gray-400 leading-relaxed">
+                        I ensure smooth deployment, hosting setup, and post-launch optimization for maximum performance.
+                    </p>
+                </div>
+            </div>
+
+            <div class="hidden md:block h-full relative">
+                <div class="sticky top-32 h-[500px] w-full glass-panel rounded-3xl border border-white/10 p-2 overflow-hidden shadow-2xl">
+                    <div class="bg-black/90 w-full h-full rounded-2xl relative overflow-hidden flex items-center justify-center">
+                        <div class="text-left font-mono text-xs text-gray-500 space-y-2 p-8 w-full opacity-70">
+                            <p><span class="text-purple-400">const</span> project = <span class="text-white">new</span> Architect();</p>
+                            <p>project.init({</p>
+                            <p class="pl-4">mode: <span class="text-green-400">'high_performance'</span>,</p>
+                            <p class="pl-4">design: <span class="text-green-400">'cyber_noir'</span>,</p>
+                            <p>});</p>
+                            <p class="text-gray-600">// Compiling assets...</p>
+                            <div class="w-full bg-gray-800 h-1 mt-2 rounded overflow-hidden">
+                                <div class="bg-white h-full w-[60%] animate-pulse"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-24 border-y border-white/5 bg-black/50">
+        <div class="max-w-7xl mx-auto px-6">
+            <h2 class="text-3xl font-display font-bold text-center mb-16 reveal">Client Feedback</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="glass-panel p-8 rounded-2xl reveal">
+                    <div class="flex items-center gap-2 mb-4 text-yellow-500"><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i></div>
+                    <p class="text-gray-400 text-sm mb-6">"Created an incredible Discord bot for my community. The economy system is flawless."</p>
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-gray-700"></div>
+                        <div class="text-sm font-bold">ServerAdmin_99</div>
+                    </div>
+                </div>
+                <div class="glass-panel p-8 rounded-2xl reveal" style="transition-delay: 100ms;">
+                    <div class="flex items-center gap-2 mb-4 text-yellow-500"><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i></div>
+                    <p class="text-gray-400 text-sm mb-6">"The Roblox game UI is exactly what I wanted. Clean, responsive, and easy to edit."</p>
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-gray-700"></div>
+                        <div class="text-sm font-bold">GameDevStudio</div>
+                    </div>
+                </div>
+                <div class="glass-panel p-8 rounded-2xl reveal" style="transition-delay: 200ms;">
+                    <div class="flex items-center gap-2 mb-4 text-yellow-500"><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i><i data-lucide="star" class="w-4 h-4 fill-current"></i></div>
+                    <p class="text-gray-400 text-sm mb-6">"Fast delivery and clean code. The website portfolio he built got me hired."</p>
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-gray-700"></div>
+                        <div class="text-sm font-bold">AlexDesigns</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="pricing" class="py-32 px-6 max-w-7xl mx-auto relative z-10">
+        <div class="text-center mb-20 reveal">
+            <span class="text-xs font-mono text-gray-500 uppercase tracking-widest">Investment</span>
+            <h2 class="text-4xl md:text-6xl font-display font-bold text-white mt-4">Transparent Pricing</h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="glass-panel p-8 rounded-3xl border border-white/5 hover:border-white/20 transition-all group reveal">
+                <div class="mb-6">
+                    <h3 class="text-xl font-bold text-white">Scripting</h3>
+                    <p class="text-sm text-gray-400 mt-2">Roblox Scripts or Simple Bots.</p>
+                </div>
+                <div class="text-4xl font-display font-bold text-white mb-8">$20 - $100</div>
+                <ul class="space-y-4 mb-8 text-sm text-gray-300">
+                    <li class="flex items-center gap-3"><i data-lucide="check" class="w-4 h-4 text-white"></i> Custom Systems</li>
+                    <li class="flex items-center gap-3"><i data-lucide="check" class="w-4 h-4 text-white"></i> Datastore Setup</li>
+                    <li class="flex items-center gap-3"><i data-lucide="check" class="w-4 h-4 text-white"></i> Bug Fixing</li>
+                </ul>
+                <button class="w-full py-3 rounded-full border border-white/10 hover:bg-white/10 transition text-sm font-medium text-white">Select</button>
+            </div>
+
+            <div class="glass-panel p-8 rounded-3xl border border-white/40 bg-white/5 relative group reveal" style="transition-delay: 100ms;">
+                <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-white text-black px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Most Popular</div>
+                <div class="mb-6">
+                    <h3 class="text-xl font-bold text-white">Full Bot</h3>
+                    <p class="text-sm text-gray-300 mt-2">Advanced Discord Applications.</p>
+                </div>
+                <div class="text-4xl font-display font-bold text-white mb-8">$50 - $150</div>
+                <ul class="space-y-4 mb-8 text-sm text-white">
+                    <li class="flex items-center gap-3"><i data-lucide="check" class="w-4 h-4"></i> API Integrations</li>
+                    <li class="flex items-center gap-3"><i data-lucide="check" class="w-4 h-4"></i> Database Hosting</li>
+                    <li class="flex items-center gap-3"><i data-lucide="check" class="w-4 h-4"></i> 1 Month Support</li>
+                </ul>
+                <button class="shiny-btn w-full py-4 rounded-full text-white font-bold">Start Project</button>
+            </div>
+
+            <div class="glass-panel p-8 rounded-3xl border border-white/5 hover:border-white/20 transition-all group reveal" style="transition-delay: 200ms;">
+                <div class="mb-6">
+                    <h3 class="text-xl font-bold text-white">Web Experience</h3>
+                    <p class="text-sm text-gray-400 mt-2">Professional portfolio or shop.</p>
+                </div>
+                <div class="text-4xl font-display font-bold text-white mb-8">$200+</div>
+                <ul class="space-y-4 mb-8 text-sm text-gray-300">
+                    <li class="flex items-center gap-3"><i data-lucide="check" class="w-4 h-4 text-white"></i> Responsive Design</li>
+                    <li class="flex items-center gap-3"><i data-lucide="check" class="w-4 h-4 text-white"></i> 3D Animations</li>
+                    <li class="flex items-center gap-3"><i data-lucide="check" class="w-4 h-4 text-white"></i> SEO Optimization</li>
+                </ul>
+                <button class="w-full py-3 rounded-full border border-white/10 hover:bg-white/10 transition text-sm font-medium text-white">Select</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact" class="py-32 px-6">
+        <div class="max-w-3xl mx-auto reveal">
+            <h2 class="text-4xl font-display font-bold text-center mb-12">Initialize Contact</h2>
+            
+            <div class="glass-panel rounded-2xl p-1 border border-white/10 overflow-hidden">
+                <div class="bg-black/90 p-8 rounded-xl font-mono text-sm">
+                    <div class="flex gap-2 mb-6">
+                        <span class="text-green-400">➜</span>
+                        <span class="text-blue-400">~/contact</span>
+                        <span class="text-gray-500">git:(master)</span>
+                    </div>
+                    
+                    <form class="space-y-6">
+                        <div>
+                            <label class="block text-gray-500 mb-2">input.name</label>
+                            <input type="text" class="w-full bg-white/5 border border-white/10 rounded p-3 text-white focus:outline-none focus:border-white/30 transition" placeholder="Your Name">
+                        </div>
+                        <div>
+                            <label class="block text-gray-500 mb-2">input.email</label>
+                            <input type="email" class="w-full bg-white/5 border border-white/10 rounded p-3 text-white focus:outline-none focus:border-white/30 transition" placeholder="email@example.com">
+                        </div>
+                        <div>
+                            <label class="block text-gray-500 mb-2">input.message</label>
+                            <textarea rows="4" class="w-full bg-white/5 border border-white/10 rounded p-3 text-white focus:outline-none focus:border-white/30 transition" placeholder="Describe your project..."></textarea>
+                        </div>
+                        <button class="shiny-btn w-full py-3 rounded text-white font-bold uppercase tracking-widest mt-4">
+                            > Send Packet
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="border-t border-white/5 py-12 bg-black relative z-10">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center font-bold text-black">ip</div>
+                <span class="text-gray-400 text-sm">© 2025 ilovepeachs. All rights reserved.</span>
+            </div>
+            
+            <div class="flex gap-6">
+                <a href="#" class="text-gray-500 hover:text-white transition"><i data-lucide="github" class="w-5 h-5"></i></a>
+                <a href="#" class="text-gray-500 hover:text-white transition"><i data-lucide="twitter" class="w-5 h-5"></i></a>
+                <a href="#" class="text-gray-500 hover:text-white transition"><i data-lucide="gamepad-2" class="w-5 h-5"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Init Icons
+        lucide.createIcons();
+
+        // 1. Falling Pattern Engine (Web Animations API)
+        const container = document.getElementById('pattern-container');
+        const color = '#ffffff'; 
+        const duration = 120000;
+
+        const patterns = [
+            `radial-gradient(3px 80px at 0px 235px, ${color}, transparent)`,
+            `radial-gradient(3px 80px at 300px 235px, ${color}, transparent)`,
+            `radial-gradient(1.5px 1.5px at 150px 117.5px, ${color} 100%, transparent 150%)`,
+            `radial-gradient(3px 80px at 0px 252px, ${color}, transparent)`,
+            `radial-gradient(3px 80px at 300px 252px, ${color}, transparent)`,
+            `radial-gradient(1.5px 1.5px at 150px 126px, ${color} 100%, transparent 150%)`,
+            `radial-gradient(3px 80px at 0px 150px, ${color}, transparent)`,
+            `radial-gradient(3px 80px at 300px 150px, ${color}, transparent)`
+        ];
+
+        const backgroundSizes = patterns.map(() => '300px 300px').join(', ');
+        const startPositions = patterns.map((_, i) => `0px ${i * 50}px`).join(', ');
+        const endPositions = patterns.map((_, i) => `0px ${1000 + (i * 50)}px`).join(', ');
+
+        container.style.backgroundImage = patterns.join(', ');
+        container.style.backgroundSize = backgroundSizes;
+
+        container.animate(
+            [{ backgroundPosition: startPositions }, { backgroundPosition: endPositions }],
+            { duration: duration, iterations: Infinity, easing: 'linear' }
+        );
+
+        // 2. 3D Tilt Effect
+        const heroSection = document.querySelector('section');
+        const heroCard = document.querySelector('.card-3d');
+        
+        document.addEventListener('mousemove', (e) => {
+            if(window.innerWidth > 768 && heroCard) {
+                const x = (window.innerWidth / 2 - e.pageX) / 35;
+                const y = (window.innerHeight / 2 - e.pageY) / 35;
+                heroCard.style.transform = `rotateY(${x}deg) rotateX(${y}deg)`;
+            }
+        });
+
+        // 3. Spotlight Effect
+        document.querySelectorAll('.spotlight-card').forEach(card => {
+            card.addEventListener('mousemove', e => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                card.style.setProperty('--mouse-x', `${x}px`);
+                card.style.setProperty('--mouse-y', `${y}px`);
+            });
+        });
+
+        // 4. Scroll Observer
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    </script>
+</body>
+</html>
